@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SloEmergencyHub</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf3;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+#topbar{background:#161b22;border-bottom:1px solid #30363d;padding:7px 14px;display:flex;align-items:center;gap:9px;flex-shrink:0;flex-wrap:wrap}
+#topbar h1{font-size:15px;font-weight:700;color:#58a6ff}
+.stat{background:#21262d;border:1px solid #30363d;border-radius:5px;padding:3px 9px;font-size:12px;color:#8b949e}
+.stat b{color:#f0f6fc}
+.stat.g b{color:#3fb950}
+#wsdot{width:7px;height:7px;border-radius:50%;background:#6e7681}
+#wsdot.on{background:#3fb950;animation:pls 2s infinite}
+@keyframes pls{0%,100%{opacity:1}50%{opacity:.3}}
+.fs{flex:1}
+.tbtn{border-radius:5px;padding:4px 11px;font-size:12px;cursor:pointer;font-weight:600}
+#scan-btn{background:#0d419d;border:1px solid #1f6feb;color:#fff}
+#scan-btn:hover,#scan-btn.scanning{background:#1f6feb}
+#scan-btn.scanning{animation:pls 1s infinite}
+#auth-btn{background:#21262d;border:1px solid #30363d;color:#e6edf3}
+#main{display:flex;flex:1;overflow:hidden}
+#sidebar{width:340px;flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid #30363d;overflow:hidden}
+#tabs{display:flex;background:#161b22;border-bottom:1px solid #30363d}
+.tab{flex:1;padding:7px 2px;text-align:center;font-size:11px;font-weight:700;cursor:pointer;color:#8b949e;border-bottom:2px solid transparent}
+.tab.active{color:#58a6ff;border-color:#58a6ff}
+.tab:hover:not(.active){color:#e6edf3;background:#21262d}
+#panel{flex:1;overflow-y:auto;padding:7px}
+#panel::-webkit-scrollbar{width:4px}
+#panel::-webkit-scrollbar-thumb{background:#30363d;border-radius:2px}
+.sr{display:flex;gap:5px;margin-bottom:7px}
+.sr input{flex:1;background:#21262d;border:1px solid #30363d;color:#e6edf3;border-radius:5px;padding:5px 8px;font-size:12px;outline:none}
+.sr input:focus{border-color:#58a6ff}
+.sr select{background:#21262d;border:1px solid #30363d;color:#e6edf3;border-radius:5px;padding:5px 6px;font-size:12px;outline:none}
+.sec{font-size:10px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin:4px 0 5px}
+.uc{background:#161b22;border:1px solid #30363d;border-radius:6px;padding:7px 9px;margin-bottom:4px;cursor:pointer}
+.uc:hover{border-color:#58a6ff;background:#1c2128}
+.uc.ho{border-left:3px solid #3fb950}
+.un{font-size:13px;font-weight:600;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.um{font-size:11px;color:#8b949e;margin-top:1px}
+.tc{font-size:10px;font-weight:700;border-radius:3px;padding:1px 5px;color:#fff}
+.PGD{background:#c0392b}.GZ{background:#e67e22}.CZ{background:#d4ac0d}
+.NMP{background:#1565c0}.AED{background:#2e7d32}.PPO{background:#6a1b9a}
+.PIGD{background:#4e342e}.OTHER{background:#546e7a}
+.ob{margin-left:auto;font-size:11px;font-weight:700;color:#3fb950}
+.ob2{margin-left:auto;font-size:11px;color:#6e7681}
+.cm{margin-top:4px;display:flex;flex-direction:column;gap:2px}
+.cr{display:flex;align-items:center;gap:5px;font-size:11px;background:#0d1117;border-radius:3px;padding:2px 5px}
+.cd{width:5px;height:5px;border-radius:50%}
+.cd.on{background:#3fb950}.cd.off{background:#6e7681}
+.cn{flex:1;color:#c9d1d9}.ca{color:#8b949e;font-size:10px}
+#map{flex:1}
+#statusbar{background:#161b22;border-top:1px solid #30363d;padding:4px 14px;font-size:11px;color:#8b949e;display:flex;gap:16px}
+.leaflet-popup-content-wrapper{background:#161b22;border:1px solid #30363d;border-radius:8px;color:#e6edf3;box-shadow:0 8px 24px rgba(0,0,0,.6)}
+.leaflet-popup-tip{background:#161b22}
+.leaflet-popup-content{margin:9px 13px;font-size:13px;line-height:1.5}
+.pt{font-weight:700;font-size:14px;color:#58a6ff;margin-bottom:4px}
+.pr{display:flex;gap:6px;font-size:12px}
+.pl{color:#8b949e;min-width:65px}.pv{color:#e6edf3}
+.pc{margin-top:6px;border-top:1px solid #30363d;padding-top:6px}
+.pb{margin-top:7px;display:flex;gap:5px}
+.pbtn{flex:1;background:#21262d;border:1px solid #30363d;color:#e6edf3;border-radius:4px;padding:4px 7px;font-size:11px;cursor:pointer}
+.pbtn:hover{border-color:#58a6ff}
+#aa{padding:12px;display:flex;flex-direction:column;gap:8px}
+#aa h3{font-size:13px;color:#58a6ff}
+#aa p,#aa .warn{font-size:11px;color:#8b949e;line-height:1.5}
+#aa .warn{color:#f0883e;background:#131009;border:1px solid #3d2e00;border-radius:5px;padding:7px 9px}
+#aa .info{color:#58a6ff;background:#0d1926;border:1px solid #1f6feb;border-radius:5px;padding:7px 9px;font-size:11px}
+#aa input{background:#21262d;border:1px solid #30363d;color:#e6edf3;border-radius:5px;padding:7px 9px;font-size:13px;outline:none;width:100%}
+#aa input:focus{border-color:#58a6ff}
+#aa .ab{background:#238636;border:1px solid #2ea043;color:#fff;border-radius:5px;padding:7px;font-size:13px;cursor:pointer;font-weight:600;width:100%}
+#ast{background:#21262d;border-radius:5px;padding:7px 9px;font-size:12px}
+</style>
+</head>
+<body>
+<div id="topbar">
+  <h1>🚨 SloEmergencyHub</h1>
+  <div class="stat">Enote: <b id="s-orgs">…</b></div>
+  <div class="stat">Z app: <b id="s-crew">…</b></div>
+  <div class="stat g">Online: <b id="s-online">…</b></div>
+  <div id="wsdot"></div>
+  <span id="s-upd" style="font-size:11px;color:#8b949e">–</span>
+  <div class="fs"></div>
+  <button class="tbtn" id="scan-btn" onclick="triggerScan()">📡 Posodobi posadke</button>
+  <button class="tbtn" id="auth-btn" onclick="showTab('auth')">🔑 Auth</button>
+</div>
+<div id="main">
+  <div id="sidebar">
+    <div id="tabs">
+      <div class="tab active" data-t="all"    onclick="showTab('all')">Vse</div>
+      <div class="tab"        data-t="online" onclick="showTab('online')">Online</div>
+      <div class="tab"        data-t="nmp"    onclick="showTab('nmp')">NMP</div>
+      <div class="tab"        data-t="fire"   onclick="showTab('fire')">Gasilci</div>
+      <div class="tab"        data-t="auth"   onclick="showTab('auth')">Auth</div>
+    </div>
+    <div id="panel"><div class="sec" style="padding:12px">Nalagam…</div></div>
+  </div>
+  <div id="map"></div>
+</div>
+<div id="statusbar">
+  <span id="sb-ws">WS: –</span>
+  <span id="sb-auth">Auth: ❌</span>
+  <span id="sb-scan"></span>
+  <div class="fs"></div>
+  <span>SloEmergencyHub v5 • fireapp.eu</span>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+'use strict';
+const API='';
+let orgs=[],crewMap={},markers={},map,ws;
+let activeTab='all',ftxt='',ftype='ALL';
+
+function g(id){return document.getElementById(id)}
+function sb(id,t){const e=g(id);if(e)e.textContent=t}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function fmt(d){return d.toLocaleTimeString('sl-SI')}
+
+function initMap(){
+  map=L.map('map',{preferCanvas:true}).setView([46.12,14.8],8);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    {attribution:'© OSM © Carto',maxZoom:19,subdomains:'abcd'}).addTo(map);
+}
+
+function initWS(){
+  const proto=location.protocol==='https:'?'wss:':'ws:';
+  ws=new WebSocket(proto+'//'+location.host+'/ws');
+  ws.onopen=()=>{g('wsdot').classList.add('on');sb('sb-ws','WS: 🟢')};
+  ws.onclose=()=>{g('wsdot').classList.remove('on');sb('sb-ws','WS: 🔴');setTimeout(initWS,5000)};
+  ws.onmessage=e=>{
+    const m=JSON.parse(e.data);
+    if(m.event==='crew_update'){
+      g('s-online').textContent=m.total_online||0;
+      sb('sb-scan','Scan ok: '+fmt(new Date()));
+      g('scan-btn').textContent='📡 Posodobi posadke';
+      g('scan-btn').classList.remove('scanning');
+      fetchCrew();
+    }
+    if(m.event==='intervention_found')flashM(m.unit_id);
+  };
+}
+
+async function fetchOrgs(){
+  const r=await fetch(API+'/api/orgs');const j=await r.json();
+  orgs=j.orgs||[];
+  g('s-orgs').textContent=orgs.length;
+  g('s-upd').textContent='GPS: '+fmt(new Date());
+  drawMarkers();renderPanel();
+}
+
+async function fetchCrew(){
+  const r=await fetch(API+'/api/crew?limit=2000');const j=await r.json();
+  crewMap={};
+  for(const u of(j.units||[]))crewMap[u.id]=u;
+  g('s-crew').textContent=j.total_units||'…';
+  g('s-online').textContent=j.total_online||0;
+  drawMarkers();renderPanel();
+}
+
+async function triggerScan(){
+  const b=g('scan-btn');b.classList.add('scanning');b.textContent='📡 Skenira…';
+  sb('sb-scan','Skenira…');
+  try{await fetch(API+'/api/crew/scan');}catch(e){}
+}
+
+async function checkAuth(){
+  const r=await fetch(API+'/api/auth/status');const j=await r.json();
+  sb('sb-auth',j.logged_in?'Auth: ✅ '+j.phone:'Auth: ❌');
+  return j;
+}
+
+const RAD={NMP:10,AED:10,GZ:9,CZ:8,PGD:7,PPO:6,PIGD:6,OTHER:5};
+function drawMarkers(){
+  orgs.forEach(o=>{
+    const c=crewMap[o.id];
+    const hasOn=c&&c.online_count>0;
+    const opts={radius:RAD[o.type]||6,color:hasOn?'#3fb950':(o.color||'#9e9e9e'),
+                weight:hasOn?2:1,fillColor:o.color||'#9e9e9e',fillOpacity:hasOn?0.9:0.6};
+    if(markers[o.id]){markers[o.id].setStyle(opts);}
+    else{
+      const m=L.circleMarker([o.lat,o.lon],opts);
+      m.on('click',()=>popup(o));
+      m.bindTooltip(o.name,{direction:'top',offset:[0,-5]});
+      m.addTo(map);markers[o.id]=m;
+    }
+  });
+}
+
+function popup(org){
+  const c=crewMap[org.id];
+  let ch='';
+  if(c&&c.crew&&c.crew.length){
+    const on=c.crew.filter(m=>m.online).slice(0,5);
+    const off=c.crew.filter(m=>!m.online).slice(0,2);
+    ch='<div class="pc"><b>Posadka ('+c.online_count+'/'+c.total_members+' online):</b><br>'+
+      on.map(m=>'<span style="color:#3fb950">● '+esc(m.name)+' <small>'+m.minutes_ago+'min</small></span>').join('<br>')+
+      (off.length?'<br>'+off.map(m=>'<span style="color:#6e7681">● '+esc(m.name)+'</span>').join('<br>'):'')+'</div>';
+  }
+  L.popup().setLatLng([org.lat,org.lon]).setContent(
+    '<div class="pt">'+esc(org.name)+'</div>'+
+    '<div class="pr"><span class="pl">Tip:</span><span class="pv">'+org.type+'</span></div>'+
+    '<div class="pr"><span class="pl">ID:</span><span class="pv">'+org.id+'</span></div>'+
+    '<div class="pr"><span class="pl">GPS:</span><span class="pv">'+org.lat.toFixed(5)+', '+org.lon.toFixed(5)+'</span></div>'+
+    (c?'<div class="pr"><span class="pl">Online:</span><span class="pv" style="color:#3fb950"><b>'+c.online_count+'</b>/'+c.total_members+'</span></div>':'')+
+    ch+
+    '<div class="pb"><button class="pbtn" onclick="showCrew('+org.id+')">Posadka</button>'+
+    '<button class="pbtn" onclick="loadAddr('+org.id+')">Naslov</button></div>'
+  ).openOn(map);
+}
+
+async function showCrew(id){
+  const r=await fetch(API+'/api/unit/'+id+'/running');const j=await r.json();
+  const cd=j.crew_data;if(!cd)return;
+  crewMap[id]={...crewMap[id],...cd};drawMarkers();
+  const org=orgs.find(o=>o.id===id);
+  if(org)map.setView([org.lat,org.lon],14,{animate:true});
+}
+
+async function loadAddr(id){
+  const r=await fetch(API+'/api/unit/'+id+'/address');const j=await r.json();
+  const a=j.address;
+  alert(a&&!a.error?(a.naslov||a.napis||JSON.stringify(a)):'Ni naslova intervencije.');
+}
+
+function flashM(id){
+  const m=markers[id];if(!m)return;
+  m.setStyle({color:'#f0883e',weight:4});
+  setTimeout(()=>m.setStyle({color:m.options.fillColor,weight:1}),3000);
+}
+
+function showTab(t){
+  activeTab=t;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.t===t));
+  renderPanel();
+}
+
+function renderPanel(){
+  const p=g('panel');
+  if(activeTab==='all')    rAll(p);
+  else if(activeTab==='online')rOnline(p);
+  else if(activeTab==='nmp')rNMP(p);
+  else if(activeTab==='fire')rFire(p);
+  else if(activeTab==='auth')rAuth(p);
+}
+
+function searchRow(ph){
+  return '<div class="sr">'+
+    '<input type="text" placeholder="'+ph+'" value="'+ftxt+'" oninput="ftxt=this.value;renderPanel()">'+
+    '<select onchange="ftype=this.value;renderPanel()">'+
+    ['ALL','NMP','AED','PGD','GZ','CZ'].map(v=>'<option value="'+v+'"'+(ftype===v?' selected':'')+'>'+v+'</option>').join('')+
+    '</select></div>';
+}
+
+function mkCards(units,max){
+  const fl=ftxt.toLowerCase();
+  let arr=units.filter(u=>(!fl||u.name.toLowerCase().includes(fl)||String(u.id).includes(fl))&&(ftype==='ALL'||u.type===ftype));
+  const tot=arr.length;arr=arr.slice(0,max);
+  const html=arr.map(u=>{
+    const c=crewMap[u.id];
+    const hasOn=c&&c.online_count>0;
+    const badge=hasOn?'<span class="ob">'+c.online_count+'/'+c.total_members+' 🟢</span>':(c?'<span class="ob2">'+c.total_members+'👤</span>':'');
+    const mini=hasOn&&c.crew?'<div class="cm">'+c.crew.filter(m=>m.online).slice(0,4).map(m=>
+      '<div class="cr"><div class="cd on"></div><span class="cn">'+esc(m.name)+'</span><span class="ca">'+m.minutes_ago+'min</span></div>').join('')+'</div>':'';
+    return '<div class="uc '+(hasOn?'ho':'')+'" onclick="fly('+u.lat+','+u.lon+','+u.id+')">'+
+      '<div class="un"><span class="tc '+u.type+'">'+u.type+'</span>'+esc(u.name)+badge+'</div>'+
+      '<div class="um">ID '+u.id+'</div>'+mini+'</div>';
+  }).join('');
+  const more=tot>max?'<div style="text-align:center;color:#8b949e;font-size:11px;padding:5px">+ '+(tot-max)+' več</div>':'';
+  return{html:html+more,tot};
+}
+
+const RBTN='width:100%;margin-top:7px;background:#21262d;border:1px solid #30363d;color:#e6edf3;border-radius:5px;padding:6px;font-size:12px;cursor:pointer';
+
+function rAll(p){
+  const{html,tot}=mkCards(orgs,200);
+  p.innerHTML=searchRow('Išči enoto…')+'<div class="sec">'+tot+' enot</div>'+html;
+}
+
+function rOnline(p){
+  const arr=orgs.filter(o=>crewMap[o.id]&&crewMap[o.id].online_count>0)
+    .sort((a,b)=>crewMap[b.id].online_count-crewMap[a.id].online_count);
+  const totOn=arr.reduce((s,o)=>s+(crewMap[o.id]?.online_count||0),0);
+  const{html,tot}=mkCards(arr,500);
+  p.innerHTML='<div class="sec">'+tot+' enot • '+totOn+' oseb online</div>'+searchRow('Išči…')+html+
+    '<button style="'+RBTN+'" onclick="fetchCrew()">🔄 Osveži</button>';
+}
+
+function rNMP(p){
+  const arr=orgs.filter(o=>o.type==='NMP'||o.type==='AED')
+    .sort((a,b)=>(crewMap[b.id]?.online_count||0)-(crewMap[a.id]?.online_count||0));
+  const totOn=arr.reduce((s,o)=>s+(crewMap[o.id]?.online_count||0),0);
+  const cards=arr.map(o=>{
+    const c=crewMap[o.id];const hasOn=c&&c.online_count>0;
+    const mini=c&&c.crew?'<div class="cm">'+c.crew.slice(0,6).map(m=>
+      '<div class="cr"><div class="cd '+(m.online?'on':'off')+'"></div><span class="cn">'+esc(m.name)+'</span><span class="ca">'+(m.minutes_ago!=null?m.minutes_ago+'min':'')+'</span></div>').join('')+'</div>':'';
+    const badge=hasOn?'<span class="ob">'+c.online_count+'/'+c.total_members+' 🟢</span>':(c?'<span class="ob2">'+c.total_members+'👤</span>':'');
+    return '<div class="uc '+(hasOn?'ho':'')+'" onclick="fly('+o.lat+','+o.lon+','+o.id+')">'+
+      '<div class="un"><span class="tc '+o.type+'">'+o.type+'</span>'+esc(o.name)+badge+'</div>'+
+      '<div class="um">ID '+o.id+'</div>'+mini+'</div>';
+  }).join('');
+  p.innerHTML='<div class="sec">NMP/AED: '+arr.length+' enot • '+totOn+' online</div>'+cards+
+    '<button style="'+RBTN+'" onclick="fetchCrew()">🔄 Osveži</button>';
+}
+
+function rFire(p){
+  const arr=orgs.filter(o=>['PGD','GZ','CZ','PPO','PIGD'].includes(o.type))
+    .sort((a,b)=>(crewMap[b.id]?.online_count||0)-(crewMap[a.id]?.online_count||0));
+  const totOn=arr.reduce((s,o)=>s+(crewMap[o.id]?.online_count||0),0);
+  const{html,tot}=mkCards(arr,300);
+  p.innerHTML='<div class="sec">'+tot+' gasilskih enot • '+totOn+' z odprto app</div>'+searchRow('Išči gasilce…')+html;
+}
+
+function rAuth(p){
+  p.innerHTML='<div id="aa">'+
+    '<h3>🔑 Prijava v FireApp</h3>'+
+    '<div id="ast">Preverjam…</div>'+
+    '<p>Za morebitne dodatne podatke se prijavi.</p>'+
+    '<input id="fa-ph" type="tel" placeholder="Tel. (031234567)">'+
+    '<input id="fa-pw" type="password" placeholder="App geslo (8 znakov)">'+
+    '<button class="ab" onclick="doLogin()">Prijava</button>'+
+    '<button class="ab" style="background:#21262d;border-color:#30363d" onclick="doLogout()">Odjava</button>'+
+    '<div id="lmsg" style="font-size:12px;color:#8b949e;min-height:16px"></div>'+
+    '<div class="warn">⚠️ App geslo ≠ PIN spletnega vmesnika! Je 8-mestno alfanumerično (npr. X4f6N4fz), prejeto po SMS.</div>'+
+    '<div class="info">ℹ️ <b>Brez prijave:</b><br>✅ GPS 1022+ enot<br>✅ Posadka 1200+ enot v živo<br>✅ Kdaj je kdo odprl app<br>❓ Intervencijski aktivacija je push-only (FCM)</div>'+
+    '</div>';
+  checkAuth().then(j=>{const s=g('ast');if(s)s.innerHTML=j.logged_in?'✅ Prijavljeni ('+j.phone+')<br><small>'+j.last_login+'</small>':'❌ Niste prijavljeni';});
+}
+
+async function doLogin(){
+  const ph=g('fa-ph').value.trim(),pw=g('fa-pw').value.trim(),msg=g('lmsg');
+  if(!ph||!pw){msg.textContent='Vnesi oba podatka.';return;}
+  msg.style.color='#8b949e';msg.textContent='Prijavljam…';
+  const r=await fetch(API+'/api/auth/login?phone='+encodeURIComponent(ph)+'&password='+encodeURIComponent(pw),{method:'POST'});
+  const j=await r.json();
+  if(r.ok&&j.logged_in){msg.style.color='#3fb950';msg.textContent='✅ Uspelo!';sb('sb-auth','Auth: ✅ '+ph.slice(0,6)+'****');rAuth(g('panel'));}
+  else{msg.style.color='#f85149';msg.textContent='❌ '+(j.error||j.detail||JSON.stringify(j));}
+}
+async function doLogout(){await fetch(API+'/api/auth/logout',{method:'POST'});sb('sb-auth','Auth: ❌');rAuth(g('panel'));}
+
+function fly(lat,lon,id){
+  map.setView([lat,lon],13,{animate:true});
+  const m=markers[id];if(m){m.openTooltip();setTimeout(()=>m.closeTooltip(),2000);}
+}
+
+initMap();initWS();fetchOrgs();fetchCrew();checkAuth();showTab('all');
+setInterval(fetchOrgs,30*1000);   // GPS + orgs
+setInterval(fetchCrew,30*1000);   // crew/intervention data
+setInterval(checkAuth,30*1000);   // auth status
+setInterval(()=>{if(_auth?.logged_in) fetch(API+'/api/auth/refresh',{method:'POST'});},30*60*1000); // keep session alive
+</script>
+</body>
+</html>
